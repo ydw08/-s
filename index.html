@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Signal & AI Object Classification Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0b132b;
+            --card-bg: #1c2541;
+            --text-main: #ffffff;
+            --text-sub: #8da9c4;
+            --accent-green: #00b4d8;
+            --accent-peach: #ffb703;
+            --accent-banana: #ffd166;
+            --accent-apple: #ef476f;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 5px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(45deg, #00b4d8, #90e0ef);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sub-title {
+            color: var(--text-sub);
+            font-size: 13px;
+            margin-bottom: 25px;
+        }
+
+        /* 주파수 가이드 영역 */
+        .guide-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 15px;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .guide-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-green);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .guide-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: var(--text-sub);
+        }
+
+        .guide-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        /* 메인 버튼 */
+        .btn-primary {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 180, 216, 0.5);
+        }
+
+        /* 입력 및 분석 섹션 (숨김 처리) */
+        .analysis-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input[type="number"] {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 10px;
+            width: 120px;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 8px rgba(0, 180, 216, 0.4);
+        }
+
+        .noise-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-bottom: 25px;
+            cursor: pointer;
+        }
+
+        .noise-toggle input {
+            cursor: pointer;
+        }
+
+        /* 분석 결과 디자인 */
+        .result-container {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+            display: none;
+        }
+
+        .result-header {
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .predicted-class {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border-left: 5px solid var(--accent-green);
+        }
+
+        /* 프로그레스 바 (확률 분포 그래프) */
+        .probability-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .bar-container {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            height: 10px;
+            width: 100%;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 6px;
+            transition: width 1s cubic-bezier(0.1, 0.8, 0.2, 1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🧠 EEG 분류 시뮬레이터</h1>
+    <div class="sub-title">Brain-Computer Interface & Deep Learning Simulator</div>
+    
+    <div class="guide-container">
+        <div class="guide-title">시각 자극 인지 뇌파 기준</div>
+        <div class="guide-item">
+            <span><span class="dot" style="background-color: var(--accent-peach);"></span>🍑 복숭아 (편안한 자극 / 알파파)</span>
+            <strong>10.0 Hz</strong>
+        </div>
+        <div class="guide-item">
+            <span><span class="dot" style="background-color: var(--accent-banana);"></span>🍌 바나나 (일상적 분석 / 베타파)</span>
+            <strong>16.0 Hz</strong>
+        </div>
+        <div class="guide-item">
+            <span><span class="dot" style="background-color: var(--accent-apple);"></span>🍎 사과 (높은 시각 인지 / 베타파)</span>
+            <strong>25.0 Hz</strong>
+        </div>
+    </div>
+
+    <div id="dashboard-screen">
+        <button class="btn-primary" onclick="initAnalysisScreen()">분석 프로세스 개시</button>
+    </div>
+
+    <div id="analysis-screen" class="analysis-section">
+        <div class="input-group">
+            <input type="number" id="eeg-input" placeholder="00.0" step="0.1" min="5" max="35">
+            <span style="font-weight: bold; font-size: 18px; color: var(--text-sub);">Hz</span>
+            <button class="btn-primary" onclick="runAIClassifier()" style="padding: 12px 20px; font-size: 14px; margin-left: 10px;">AI 분류 실행</button>
+        </div>
+
+        <label class="noise-toggle">
+            <input type="checkbox" id="noise-checkbox" checked>
+            <span>실제 환경 잡음(Noise) 모델링 추가 (SNR 감쇄 필터)</span>
+        </label>
+
+        <div class="result-container" id="result-container">
+            <div class="result-header">
+                <span id="applied-frequency">입력 주파수: -- Hz</span>
+                <span id="noise-indicator" style="color: var(--accent-peach);">노이즈 감쇄 활성</span>
+            </div>
+            
+            <div class="predicted-class" id="top-prediction">
+                매칭 대기 중...
+            </div>
+
+            <div class="probability-label">
+                <span>🍑 복숭아 (Peach)</span>
+                <span id="prob-peach">0%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill" id="bar-peach" style="background-color: var(--accent-peach);"></div>
+            </div>
+
+            <div class="probability-label">
+                <span>🍌 바나나 (Banana)</span>
+                <span id="prob-banana">0%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill" id="bar-banana" style="background-color: var(--accent-banana);"></div>
+            </div>
+
+            <div class="probability-label">
+                <span>🍎 사과 (Apple)</span>
+                <span id="prob-apple">0%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill" id="bar-apple" style="background-color: var(--accent-apple);"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function initAnalysisScreen() {
+        document.getElementById('dashboard-screen').style.display = 'none';
+        document.getElementById('analysis-screen').style.display = 'block';
+    }
+
+    function runAIClassifier() {
+        const inputField = document.getElementById('eeg-input');
+        let inputHz = parseFloat(inputField.value);
+
+        if (isNaN(inputHz)) {
+            alert("정밀 분석을 위해 5.0 ~ 35.0 사이의 뇌파 주파수를 입력해주세요.");
+            return;
+        }
+
+        const addNoise = document.getElementById('noise-checkbox').checked;
+        let noiseOffset = 0;
+
+        // 노이즈 모델링 (실제 잡음 반영: -1.2Hz ~ +1.2Hz 무작위 흔들림 적용)
+        if (addNoise) {
+            noiseOffset = (Math.random() * 2.4 - 1.2);
+            document.getElementById('noise-indicator').innerText = `노이즈 흔들림: ${noiseOffset > 0 ? '+' : ''}${noiseOffset.toFixed(2)} Hz`;
+            document.getElementById('noise-indicator').style.color = '#ef476f';
+        } else {
+            document.getElementById('noise-indicator').innerText = "노이즈 필터링 차단";
+            document.getElementById('noise-indicator').style.color = '#00b4d8';
+        }
+
+        const finalHz = inputHz + noiseOffset;
+        document.getElementById('applied-frequency').innerText = `최종 매칭값: ${finalHz.toFixed(2)} Hz`;
+
+        // 기준 주파수
+        const classes = [
+            { id: "peach", name: "🍑 복숭아 (Peach)", target: 10.0, color: "var(--accent-peach)" },
+            { id: "banana", name: "🍌 바나나 (Banana)", target: 16.0, color: "var(--accent-banana)" },
+            { id: "apple", name: "🍎 사과 (Apple)", target: 25.0, color: "var(--accent-apple)" }
+        ];
+
+        // 가우시안 커널 방식과 유사하게 거리 역산 기반 소프트맥스(Softmax) 확률 모델링 적용
+        let totalWeight = 0;
+        let weights = [];
+
+        classes.forEach((item) => {
+            // 입력값과 각 기준 주파수 사이의 절대적 거리를 구함
+            let distance = Math.abs(finalHz - item.target);
+            // 거리가 멀어질수록 가중치가 기하급수적으로 감소하는 함수 설계 (통계적 유사성 변환)
+            let weight = Math.exp(-0.15 * Math.pow(distance, 2)); 
+            weights.push({ ...item, weight: weight });
+            totalWeight += weight;
+        });
+
+        // 상대 비율(확률 %) 계산
+        let results = weights.map(item => {
+            let probability = (item.weight / totalWeight) * 100;
+            return { ...item, prob: Math.round(probability) };
+        });
+
+        // 100% 보정작업 (소수점 반올림 오차 보정)
+        let sumProb = results.reduce((a, b) => a + b.prob, 0);
+        if (sumProb !== 100 && sumProb > 0) {
+            results[0].prob += (100 - sumProb);
+        }
+
+        // 가장 확률이 높은 타겟 추출
+        let topResult = results.reduce((prev, current) => (prev.prob > current.prob) ? prev : current);
+
+        // UI 갱신 애니메이션 및 데이터 렌더링
+        const resultContainer = document.getElementById('result-container');
+        resultContainer.style.display = 'block';
+
+        const topPredictionEl = document.getElementById('top-prediction');
+        topPredictionEl.innerText = `${topResult.name} 매칭 완료 (${topResult.prob}%)`;
+        topPredictionEl.style.borderLeftColor = topResult.color;
+
+        // 개별 프로그레스 바 적용
+        results.forEach(item => {
+            document.getElementById(`prob-${item.id}`).innerText = `${item.prob}%`;
+            document.getElementById(`bar-${item.id}`).style.width = `${item.prob}%`;
+        });
+    }
+</script>
+
+</body>
+</html>
